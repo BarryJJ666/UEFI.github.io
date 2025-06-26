@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>我的固件原理课设 - UEFI开发之旅</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.7;
+            color: #e0e6ed;
+            background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 50%, #2d3748 100%);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, #1a2332 0%, #2d3748 100%);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            border-bottom: 3px solid #4299e1;
+            position: relative; /* 改为相对定位，不再固定在顶部 */
+        }
+
+        .header-content {
+            padding: 2rem 0;
+        }
+
+        h1 {
+            color: #4299e1;
+            font-size: 2.8rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 0.5rem;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #a0aec0;
+            font-size: 1.2rem;
+            margin-bottom: 1.5rem;
+            font-style: italic;
+        }
+
+        nav {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 2rem;
+            margin-top: 1rem;
+        }
+
+        nav a {
+            color: #e0e6ed;
+            text-decoration: none;
+            padding: 0.7rem 1.5rem;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            border: 2px solid transparent;
+        }
+
+        nav a:hover {
+            background: #4299e1;
+            color: white;
+            transform: translateY(-2px);
+            border-color: #63b3ed;
+        }
+
+        main {
+            padding: 3rem 0;
+        }
+
+        .section {
+            background: rgba(45, 55, 72, 0.8);
+            margin: 3rem 0;
+            padding: 3rem;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .section h2 {
+            color: #4299e1;
+            font-size: 2.2rem;
+            margin-bottom: 2rem;
+            border-bottom: 3px solid #4299e1;
+            padding-bottom: 0.8rem;
+            position: relative;
+        }
+
+        .section h2::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 0;
+            width: 60px;
+            height: 3px;
+            background: #63b3ed;
+        }
+
+        .section h3 {
+            color: #63b3ed;
+            font-size: 1.5rem;
+            margin: 2rem 0 1.2rem 0;
+        }
+
+        .experiment-card {
+            background: rgba(26, 32, 44, 0.6);
+            border-radius: 12px;
+            padding: 2.5rem;
+            margin: 2rem 0;
+            border-left: 4px solid #4299e1;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .experiment-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(66, 153, 225, 0.2);
+        }
+
+        .experiment-title {
+            color: #4299e1;
+            font-size: 1.7rem;
+            font-weight: 600;
+            margin-bottom: 1.2rem;
+        }
+
+        .student-voice {
+            background: linear-gradient(135deg, rgba(66, 153, 225, 0.15), rgba(99, 179, 237, 0.1));
+            border-left: 4px solid #4299e1;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            border-radius: 8px;
+            font-style: italic;
+            position: relative;
+        }
+
+        .student-voice::before {
+            content: "💭";
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+            margin: 1.5rem 0;
+        }
+
+        .tech-tag {
+            background: linear-gradient(135deg, #4299e1, #63b3ed);
+            color: white;
+            padding: 0.4rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .code-block {
+            background: #1a202c;
+            border-radius: 10px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            overflow-x: auto;
+            border-left: 4px solid #4299e1;
+            position: relative;
+        }
+
+        .code-block::before {
+            content: "💻 Code";
+            position: absolute;
+            top: 0.5rem;
+            right: 1rem;
+            color: #4299e1;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .code-block pre {
+            color: #e2e8f0;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .image-container {
+            text-align: center;
+            margin: 2.5rem 0;
+            padding: 2rem;
+            background: rgba(26, 32, 44, 0.4);
+            border-radius: 12px;
+            border: 2px dashed #4299e1;
+        }
+        
+        /* 新增图片样式 */
+        .image-container img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            transition: transform 0.3s ease;
+        }
+        
+        .image-container img:hover {
+            transform: scale(1.02);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 2rem;
+            margin: 2.5rem 0;
+        }
+
+        .stat-item {
+            background: linear-gradient(135deg, #2d3748, #4a5568);
+            padding: 2rem;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid rgba(66, 153, 225, 0.3);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-item:hover {
+            transform: translateY(-3px);
+        }
+
+        .stat-number {
+            font-size: 2.8rem;
+            font-weight: bold;
+            color: #4299e1;
+        }
+
+        .stat-label {
+            color: #a0aec0;
+            margin-top: 0.8rem;
+            font-size: 1.1rem;
+        }
+
+        .highlight-box {
+            background: linear-gradient(135deg, rgba(66, 153, 225, 0.2), rgba(99, 179, 237, 0.1));
+            border: 1px solid #4299e1;
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 2rem 0;
+        }
+
+        .highlight-box h4 {
+            color: #4299e1;
+            margin-bottom: 1rem;
+            font-size: 1.3rem;
+        }
+
+        .process-step {
+            background: rgba(26, 32, 44, 0.5);
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+            border-left: 3px solid #63b3ed;
+        }
+
+        .process-step h4 {
+            color: #63b3ed;
+            margin-bottom: 0.8rem;
+        }
+
+        ul, ol {
+            margin-left: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        li {
+            margin-bottom: 0.8rem;
+        }
+
+        .difficulty-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #e53e3e, #fc8181);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-left: 1rem;
+        }
+
+        .success-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #38a169, #68d391);
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-left: 1rem;
+        }
+
+        .footer {
+            background: #1a202c;
+            text-align: center;
+            padding: 3rem 0;
+            color: #a0aec0;
+            border-top: 1px solid #2d3748;
+        }
+
+        .personal-note {
+            background: rgba(99, 179, 237, 0.1);
+            border: 1px solid #63b3ed;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            font-style: italic;
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.2rem;
+            }
+            
+            nav {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .section {
+                padding: 2rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            }
+        }
+
+        .scroll-indicator {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(to right, #4299e1, #63b3ed);
+            transform: scaleX(0);
+            transform-origin: left;
+            z-index: 1001;
+        }
+    </style>
+</head>
+<body>
+    <div class="scroll-indicator"></div>
+    
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <h1>我的固件原理课设实验记录</h1>
+                <p class="subtitle">一个计算机学院学生的UEFI开发学习之旅 🚀</p>
+                <nav>
+                    <a href="#overview">开始的话</a>
+                    <a href="#experiment1">实验一</a>
+                    <a href="#experiment2">实验二</a>
+                    <a href="#experiment3">实验三</a>
+                    <a href="#experiment4">实验四</a>
+                    <a href="#conclusion">总结感想</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main>
+        <div class="container">
+            <section id="overview" class="section">
+                <h2>🎯 开始的话</h2>
+                
+                <div class="student-voice">
+                    嗨！我是张禹喆，这是我在王冠老师指导下完成的固件原理课程设计。说实话，刚开始听到"固件"、"BIOS"这些词的时候我是懵的，总觉得这些东西离我们很远。但是经过这学期的学习，特别是这四个实验，我发现原来固件开发这么有趣！
+                </div>
+
+                <p style="font-size: 1.1rem; margin-bottom: 2rem;">这个课设让我从零开始接触UEFI开发，从最基础的应用程序，到驱动开发，再到用户界面设计，最后是文件系统操作。每一步都充满挑战，但也收获满满。</p>
+                
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number">4</div>
+                        <div class="stat-label">个实验模块</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">2000+</div>
+                        <div class="stat-label">行代码</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">30+</div>
+                        <div class="stat-label">小时调试时间</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">∞</div>
+                        <div class="stat-label">次"为什么又报错了"</div>
+                    </div>
+                </div>
+
+                <div class="highlight-box">
+                    <h4>🎯 我的学习目标</h4>
+                    <ul>
+                        <li>搞懂UEFI到底是什么东西（之前只知道开机时会看到BIOS界面）</li>
+                        <li>学会搭建edk2开发环境（光这个就折腾了一下午）</li>
+                        <li>能写出基本的UEFI应用程序和驱动程序</li>
+                        <li>理解固件层面的用户界面是怎么实现的</li>
+                        <li>掌握在UEFI环境下操作文件系统的方法</li>
+                    </ul>
+                </div>
+
+                <div class="tech-stack">
+                    <span class="tech-tag">UEFI</span>
+                    <span class="tech-tag">EDK2</span>
+                    <span class="tech-tag">C语言</span>
+                    <span class="tech-tag">SMBIOS</span>
+                    <span class="tech-tag">HII</span>
+                    <span class="tech-tag">VFR</span>
+                    <span class="tech-tag">Ubuntu虚拟机</span>
+                    <span class="tech-tag">QEMU模拟器</span>
+                </div>
+            </section>
+
+            <section id="experiment1" class="section">
+                <h2>🔬 实验一：我的第一个UEFI应用</h2>
+                
+                <div class="experiment-card">
+                    <div class="experiment-title">SMBIOS信息查看器 <span class="difficulty-badge">难度：⭐⭐⭐</span></div>
+                    
+                    <div class="student-voice">
+                        这是我写的第一个UEFI程序！一开始看到SMBIOS这个词完全不知道是什么，后来才知道它是System Management BIOS的缩写，可以获取电脑的各种硬件信息。说白了就是让程序能"看懂"你的电脑配置。
+                    </div>
+                    
+                    <p>实验要求是开发一个交互式的UEFI应用程序，能够根据用户选择显示不同类型的系统硬件信息。听起来简单，但实际做起来遇到了不少坑。</p>
+                    
+                    <h3>搭建开发环境的血泪史</h3>
+                    <div class="process-step">
+                        <h4>第一步：安装Ubuntu虚拟机</h4>
+                        <p>按照实验手册在VMware里装了Ubuntu系统，这步还算顺利，就是虚拟机有点卡。</p>
+                    </div>
+                    
+                    <div class="process-step">
+                        <h4>第二步：安装各种依赖包</h4>
+                        <p>这里就开始踩坑了，网络老是超时，好多包下载不下来。最后换了几个源才搞定。</p>
+                        <div class="code-block">
+                            <pre>sudo apt-get install git gcc g++ uuid-dev make nasm \
+libx11-dev libxext-dev x11proto-xext-dev acpica-tools</pre>
+                        </div>
+                    </div>
+                    
+                    <div class="process-step">
+                        <h4>第三步：下载edk2源码</h4>
+                        <p>git clone的时候因为网络问题中断了好几次，最后用了代理才下载完整。</p>
+                    </div>
+                    
+                    <div class="process-step">
+                        <h4>第四步：配置编译环境</h4>
+                        <p>修改target.txt配置文件，这里按照实验手册做，注意TOOL_CHAIN_TAG要改成GCC5。</p>
+                    </div>
+
+                    <div class="image-container">
+                        <!-- 替换为实际图片标签，注意路径要正确 -->
+                        <img src="fig/图1-1.png" alt="SMBIOS系统架构概念图">
+                        <p style="margin-top: 10px; color: #4299e1;">图1-1：SMBIOS系统架构概念图</p>
+                    </div>
+
+                    <h3>代码实现过程</h3>
+                    <p>程序的核心思路是通过UEFI的Boot Services定位SMBIOS协议，然后遍历SMBIOS表获取硬件信息。</p>
+                    
+                    <div class="highlight-box">
+                        <h4>关键技术点</h4>
+                        <ul>
+                            <li><strong>协议定位：</strong>使用gBS->LocateProtocol()函数获取SMBIOS协议实例</li>
+                            <li><strong>表遍历：</strong>通过GetNext()方法遍历所有SMBIOS结构</li>
+                            <li><strong>类型判断：</strong>根据Type字段判断硬件信息类型（Type 0是BIOS信息，Type 1是系统信息等）</li>
+                            <li><strong>用户交互：</strong>实现简单的菜单选择和键盘输入处理</li>
+                        </ul>
+                    </div>
+
+                    <div class="code-block">
+                        <pre>// 定位SMBIOS协议 - 这是获取硬件信息的入口
+Status = gBS->LocateProtocol (
+    &gEfiSmbiosProtocolGuid,  // 协议的GUID标识符
+    NULL,                     // 不需要注册通知
+    (VOID **) &Smbios        // 返回协议实例
+);
+
+// 遍历SMBIOS表获取指定类型的硬件信息
+SmbiosHandle = SMBIOS_HANDLE_PI_RESERVED;
+do {
+    Status = Smbios->GetNext (Smbios, &SmbiosHandle, NULL, &Record, NULL);
+    if (Record->Type == EFI_SMBIOS_TYPE_BIOS_INFORMATION) {
+        // 找到BIOS信息，进行解析
+        Type0Record = (SMBIOS_TABLE_TYPE0 *) Record;
+        Print(L"BIOS Vendor:%x\n", Type0Record->Vendor);
+        Print(L"BIOS Version:%x\n", Type0Record->BiosVersion);
+        // ... 更多信息解析
+    }
+} while (!Type0Find);</pre>
+                    </div>
+
+                    <div class="student-voice">
+                        写这个程序的时候最大的困难是理解UEFI的内存模型和指针操作。C语言基础还行，但是UEFI的这些协议、句柄概念刚开始真的很绕。好在老师给的示例代码很详细，慢慢摸索着就理解了。
+                    </div>
+
+                    <h3>编译和测试</h3>
+                    <p>程序写完后要进行编译，这里也有不少细节需要注意：</p>
+                    
+                    <div class="process-step">
+                        <h4>1. 创建INF配置文件</h4>
+                        <p>这个文件定义了模块的基本信息、依赖库、协议等。最容易出错的地方是LibraryClasses和Protocols节的配置。</p>
+                    </div>
+                    
+                    <div class="process-step">
+                        <h4>2. 修改DSC文件</h4>
+                        <p>在ShellPkg.dsc的[Components]节中添加我们的模块路径，这样build的时候才会编译我们的程序。</p>
+                    </div>
+                    
+                    <div class="process-step">
+                        <h4>3. 编译程序</h4>
+                        <p>使用命令：Build -a X64 -p ShellPkg/ShellPkg.dsc</p>
+                    </div>
+
+                    <div class="image-container">
+                        <img src="fig/图1-7.png" alt="SMBIOS应用程序的主菜单界面">
+                        <p style="margin-top: 10px; color: #4299e1;">图1-7：SMBIOS应用程序的主菜单界面</p>
+                    </div>
+
+                    <div class="personal-note">
+                        第一次看到自己写的程序在UEFI模拟器里跑起来，那种成就感真的无法言喻！虽然只是显示了一些系统信息，但感觉自己真的能和计算机的最底层"对话"了。
+                    </div>
+
+                    <div class="image-container">
+                        <img src="fig/图1-8.png" alt="通过输入0查看系统BIOS详细信息">
+                        <p style="margin-top: 10px; color: #4299e1;">图1-8：通过输入"0"查看系统BIOS详细信息</p>
+                    </div>
+                </div>
+            </section>
+
+            <section id="experiment2" class="section">
+                <h2>⚙️ 实验二：驱动开发的奇妙世界</h2>
+                
+                <div class="experiment-card">
+                    <div class="experiment-title">从HelloWorld到驱动程序 <span class="difficulty-badge">难度：⭐⭐⭐⭐</span></div>
+                    
+                    <div class="student-voice">
+                        如果说实验一是让我入门UEFI开发，那实验二就是让我真正理解了什么叫"系统级编程"。驱动程序和普通应用程序完全是两个概念！
+                    </div>
+                    
+                    <h3>驱动程序 vs 应用程序</h3>
+                    <p>之前一直以为驱动程序只是换个名字而已，做了这个实验才发现差别大了去了：</p>
+                    
+                    <div class="highlight-box">
+                        <h4>关键区别</h4>
+                        <ul>
+                            <li><strong>模块类型：</strong>驱动程序是DXE_DRIVER，应用程序是UEFI_APPLICATION</li>
+                            <li><strong>入口函数：</strong>驱动用UefiDriverEntryPoint，应用用UefiApplicationEntryPoint</li>
+                            <li><strong>生命周期：</strong>驱动加载后会常驻内存，应用执行完就退出</li>
+                            <li><strong>加载方式：</strong>驱动用load命令加载，应用可以直接执行</li>
+                        </ul>
+                    </div>
+
+                    <div class="code-block">
+                        <pre>// 驱动程序的INF配置（关键差异）
+[Defines]
+MODULE_TYPE = DXE_DRIVER          // 这里是重点！
+ENTRY_POINT = HelloDriverMain
+
+[LibraryClasses]
+UefiDriverEntryPoint             // 不是UefiApplicationEntryPoint
+UefiBootServicesTableLib
+
+// 应用程序的INF配置
+[Defines]
+MODULE_TYPE = UEFI_APPLICATION    // 对比一下
+ENTRY_POINT = HelloApplicationMain
+
+[LibraryClasses]
+UefiApplicationEntryPoint         // 入口点库也不同
+UefiBootServicesTableLib</pre>
+                    </div>
+
+                    <div class="student-voice">
+                        刚开始我就是把MODULE_TYPE改了一下，结果编译各种报错。后来才知道，驱动程序的整个运行模式都不一样，需要考虑模块的初始化、卸载等问题。
+                    </div>
+                </div>
+
+                <div class="experiment-card">
+                    <div class="experiment-title">服务机制实现 <span class="success-badge">突破：⭐⭐⭐⭐⭐</span></div>
+                    
+                    <p>实验的第二部分更有挑战性：实现一个完整的服务机制。简单来说，就是一个程序提供服务，另一个程序来调用这个服务。</p>
+                    
+                    <h3>设计思路</h3>
+                    <div class="process-step">
+                        <h4>服务提供者（HelloService）</h4>
+                        <ul>
+                            <li>定义协议接口和GUID</li>
+                            <li>实现具体的服务函数</li>
+                            <li>在入口函数中向系统注册协议</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="process-step">
+                        <h4>服务消费者（HelloClient）</h4>
+                        <ul>
+                            <li>通过GUID查找协议</li>
+                            <li>调用协议提供的服务函数</li>
+                            <li>处理调用结果</li>
+                        </ul>
+                    </div>
+
+                    <h3>协议定义</h3>
+                    <p>首先要在头文件中定义协议的GUID和接口结构：</p>
+                    
+                    <div class="code-block">
+                        <pre>// HelloService.h - 协议定义
+#define EFI_HELLO_PROTOCOL_GUID \
+  { 0x12345678, 0x1234, 0x1234, \
+    { 0x12, 0x34, 0x12, 0x34, 0x12, 0x34, 0x12, 0x34 } }
+
+// 定义服务函数原型
+typedef EFI_STATUS (EFIAPI *EFI_SHOW_STRING)(
+  IN EFI_HELLO_PROTOCOL *This,
+  IN CHAR16 *str
+);
+
+// 协议结构体
+typedef struct _EFI_HELLO_PROTOCOL {
+  EFI_SHOW_STRING ShowString;    // 服务函数指针
+} EFI_HELLO_PROTOCOL;</pre>
+                    </div>
+
+                    <h3>服务实现</h3>
+                    <p>服务提供程序的核心是实现服务函数，并向系统注册协议：</p>
+                    
+                    <div class="code-block">
+                        <pre>// HelloService.c - 服务实现
+EFI_STATUS EFIAPI ShowString(
+  IN EFI_HELLO_PROTOCOL *This,
+  IN CHAR16 *str
+) {
+  Print(L"Service called: %s\n", str);
+  return EFI_SUCCESS;
+}
+
+// 协议实例
+static EFI_HELLO_PROTOCOL gHello = {
+  ShowString    // 将函数指针赋值给协议结构
+};
+
+// 驱动入口函数
+EFI_STATUS EFIAPI HelloServiceMain(
+  IN EFI_HANDLE ImageHandle,
+  IN EFI_SYSTEM_TABLE *SystemTable
+) {
+  // 向系统注册协议
+  Status = gBS->InstallProtocolInterface(
+    &ImageHandle,              // 安装到当前模块句柄
+    &gEfiHelloProtocolGuid,    // 协议GUID
+    EFI_NATIVE_INTERFACE,      // 接口类型
+    &gHello                    // 协议实例
+  );
+  return Status;
+}</pre>
+                    </div>
+
+                    <h3>服务调用</h3>
+                    <p>客户端程序通过LocateProtocol查找服务并调用：</p>
+                    
+                    <div class="code-block">
+                        <pre>// HelloClient.c - 服务调用
+EFI_STATUS EFIAPI HelloClientMain(
+  IN EFI_HANDLE ImageHandle,
+  IN EFI_SYSTEM_TABLE *SystemTable
+) {
+  EFI_HELLO_PROTOCOL *HelloProtocol;
+  
+  // 查找协议
+  Status = gBS->LocateProtocol(
+    &gEfiHelloProtocolGuid,     // 通过GUID查找
+    NULL,
+    (VOID**)&HelloProtocol      // 返回协议实例
+  );
+  
+  if (EFI_ERROR(Status)) {
+    Print(L"找不到HelloService协议: %r\n", Status);
+    return Status;
+  }
+  
+  // 调用服务
+  Status = HelloProtocol->ShowString(HelloProtocol, L"Hello from client!");
+  
+  return Status;
+}</pre>
+                    </div>
+
+                    <div class="student-voice">
+                        这个服务机制真的让我大开眼界！原来模块之间可以通过协议这种方式进行通信，而不是直接调用函数。这种设计让系统更加模块化，也更容易扩展。感觉这就是面向对象思想在C语言中的体现。
+                    </div>
+
+                    <h3>测试过程</h3>
+                    <div class="process-step">
+                        <h4>第一步：编译两个程序</h4>
+                        <p>HelloService作为驱动程序，在MdeModulePkg下编译；HelloClient作为应用程序，在ShellPkg下编译。</p>
+                    </div>
+                    
+                    <div class="process-step">
+                        <h4>第二步：启动模拟器</h4>
+                        <p>将编译好的两个.efi文件复制到模拟器目录。</p>
+                    </div>
+                    
+                    <div class="process-step">
+                        <h4>第三步：加载服务</h4>
+                        <p>在UEFI Shell中执行：load HelloService.efi</p>
+                    </div>
+                    
+                    <div class="process-step">
+                        <h4>第四步：测试调用</h4>
+                        <p>执行：HelloClient.efi，看到成功调用服务！</p>
+                    </div>
+
+                    <div class="image-container">
+                        <img src="fig/图2-18.png" alt="加载HelloService服务提供程序">
+                        <p style="margin-top: 10px; color: #4299e1;">图2-18：加载HelloService服务提供程序</p>
+                    </div>
+
+                    <div class="image-container">
+                        <img src="fig/图2-20.png" alt="HelloClient成功调用HelloService提供的服务">
+                        <p style="margin-top: 10px; color: #4299e1;">图2-20：HelloClient成功调用HelloService提供的服务</p>
+                    </div>
+
+                    <div class="personal-note">
+                        看到HelloClient成功调用了HelloService的功能时，我激动得差点跳起来！这种跨模块的服务调用机制太酷了，感觉自己真的在做系统级开发了。
+                    </div>
+                </div>
+            </section>
+
+            <section id="experiment3" class="section">
+                <h2>🎨 实验三：用户界面的艺术</h2>
+                
+                <div class="experiment-card">
+                    <div class="experiment-title">HII系统探索 <span class="difficulty-badge">难度：⭐⭐⭐⭐⭐</span></div>
+                    
+                    <div class="student-voice">
+                        如果前面两个实验是在学写程序，那这个实验就是在学做"界面设计师"。没想到在UEFI这种底层环境里，也能做出这么复杂的用户界面！
+                    </div>
+                    
+                    <p>HII（Human Interface Infrastructure）是UEFI的用户界面框架。说白了，就是让我们能在BIOS里做出像Windows程序一样的界面。</p>
+                    
+                    <h3>HII系统架构理解</h3>
+                    <div class="highlight-box">
+                        <h4>三层架构</h4>
+                        <ul>
+                            <li><strong>Driver层：</strong>负责加载VFR和UNI文件，编译后注册到HII数据库</li>
+                            <li><strong>HII Database：</strong>存储所有界面资源的数据库</li>
+                            <li><strong>Forms Browser：</strong>从数据库读取数据，生成实际的用户界面</li>
+                        </ul>
+                    </div>
+
+                    <div class="image-container">
+                        <img src="fig/图3-1.png" alt="UEFI HII系统架构概念图">
+                        <p style="margin-top: 10px; color: #4299e1;">图3-1：UEFI HII系统架构概念图</p>
+                    </div>
+
+                    <h3>VFR编程学习</h3>
+                    <p>VFR（Visual Forms Representation）是定义界面的"语言"，有点像HTML，但语法更像C语言。</p>
+                    
+                    <div class="process-step">
+                        <h4>formset - 表单集定义</h4>
+                        <p>每个界面程序的根容器，定义GUID、标题等基本信息。</p>
+                        <div class="code-block">
+                            <pre>formset
+  guid = DRIVER_SAMPLE_FORMSET_GUID,
+  title = STRING_TOKEN(STR_FORM_SET_TITLE),
+  help = STRING_TOKEN(STR_FORM_SET_TITLE_HELP),
+  class = 1,
+  subclass = 0,
+  
+  // 在这里定义各种表单
+  form formid = 1,
+    title = STRING_TOKEN(STR_FORM1_TITLE);
+    // 表单内容
+  endform;
+  
+endformset;</pre>
+                        </div>
+                    </div>
+                    
+                    <div class="process-step">
+                        <h4>subtitle - 副标题</h4>
+                        <p>在表单中显示副标题文本，类似HTML的h2标签。</p>
+                        <div class="code-block">
+                            <pre>subtitle text = STRING_TOKEN(STR_SUB_TITLE_TEXT);</pre>
+                        </div>
+                    </div>
+                    
+                    <div class="process-step">
+                        <h4>text - 文本显示</h4>
+                        <p>显示静态或动态文本，还可以做成按钮。</p>
+                        <div class="code-block">
+                            <pre>// 普通文本显示
+text
+  help = STRING_TOKEN(STR_TEXT_HELP),
+  text = STRING_TOKEN(STR_CPU_STRING),
+  text = STRING_TOKEN(STR_CPU_STRING2);
+
+// 可点击的按钮
+text
+  help = STRING_TOKEN(STR_EXIT_TEXT),
+  text = STRING_TOKEN(STR_EXIT_TEXT),
+  flags = INTERACTIVE,    // 标记为可交互
+  key = 0x1237;          // 按键ID，用于处理点击事件</pre>
+                        </div>
+                    </div>
+
+                    <div class="student-voice">
+                        刚开始写VFR的时候各种语法错误，经常是少个分号或者大括号不匹配。而且编译错误信息不够友好，只能慢慢调试。不过熟悉了语法之后，发现VFR还是很强大的。
+                    </div>
+                    
+                    <div class="process-step">
+                        <h4>oneof - 单选控件</h4>
+                        <p>类似HTML的radio button或select下拉框。</p>
+                        <div class="code-block">
+                            <pre>oneof varid = MyIfrNVData.TestLateCheck,
+  prompt = STRING_TOKEN(STR_TEST_OPCODE),
+  help = STRING_TOKEN(STR_ONE_OF_HELP),
+  flags = RESET_REQUIRED,    // 选择后需要重启
+  
+  option text = STRING_TOKEN(STR_ONE_OF_TEXT1), value = 0, flags = 0;
+  option text = STRING_TOKEN(STR_ONE_OF_TEXT2), value = 1, flags = DEFAULT;
+  
+endoneof;</pre>
+                        </div>
+                    </div>
+                    
+                    <div class="process-step">
+                        <h4>string - 字符串输入</h4>
+                        <p>让用户输入文本的控件，可以设置最大最小长度和验证规则。</p>
+                        <div class="code-block">
+                            <pre>string varid = MyIfrNVData.MyStringData,
+  prompt = STRING_TOKEN(STR_MY_STRING_PROMPT2),
+  help = STRING_TOKEN(STR_MY_STRING_HELP2),
+  flags = INTERACTIVE,
+  key = 0x1236,
+  minsize = 6,           // 最小长度
+  maxsize = 40,          // 最大长度
+  
+  // 输入验证：只接受"STRING"这个词
+  inconsistentif prompt = STRING_TOKEN(STR_STRING_CHECK_ERROR_POPUP),
+    pushthis != stringref(STRING_TOKEN(STR_STRING_CHECK))
+  endif;
+  
+endstring;</pre>
+                        </div>
+                    </div>
+
+                    <h3>UNI文件多语言支持</h3>
+                    <p>UNI文件定义界面中显示的所有文本，支持多种语言：</p>
+                    
+                    <div class="code-block">
+                        <pre>// VfrStrings.uni
+#langdef en-US "English"
+#langdef fr-FR "Français"
+
+#string STR_FORM1_TITLE 
+  #language en-US "My First Setup Page"
+  #language fr-FR "Ma Première Page de Configuration"
+
+#string STR_SUB_TITLE_TEXT 
+  #language en-US "My subtitle text"
+  #language fr-FR "Mon texte de sous-titre"</pre>
+                    </div>
+
+                    <h3>实际测试过程</h3>
+                    <div class="process-step">
+                        <h4>第一步：配置EmulatorPkg</h4>
+                        <p>在EmulatorPkg.dsc的[Components]节中添加DriverSampleDxe.inf，让示例程序包含在固件镜像中。</p>
+                    </div>
+                    
+                    <div class="process-step">
+                        <h4>第二步：重新编译固件</h4>
+                        <p>执行build all重新编译整个固件镜像，这个过程比较耗时。</p>
+                    </div>
+                    
+                    <div class="process-step">
+                        <h4>第三步：启动模拟器</h4>
+                        <p>用edk2Host启动模拟器，在Shell中输入exit进入UEFI管理界面。</p>
+                    </div>
+                    
+                    <div class="process-step">
+                        <h4>第四步：进入界面</h4>
+                        <p>依次点击Device Manager → Browser Testcase Engine，就能看到我们的用户界面了！</p>
+                    </div>
+
+                    <div class="image-container">
+                        <img src="fig/图3-9.png" alt="用户界面程序的主页面显示各种VFR控件">
+                        <p style="margin-top: 10px; color: #4299e1;">图3-9：用户界面程序的主页面显示各种VFR控件</p>
+                    </div>
+
+                    <div class="personal-note">
+                        第一次看到自己"设计"的界面在UEFI环境中运行时，感觉就像魔法一样！各种控件、按钮、输入框都能正常工作，完全没想到在这么底层的环境里也能做出这么复杂的交互界面。
+                    </div>
+
+                    <div class="student-voice">
+                        这个实验让我对"用户界面"有了全新的认识。以前觉得界面开发就是拖拖控件、设置设置属性，现在才知道底层的界面系统是这么复杂和精巧的。VFR语言虽然学习曲线有点陡，但是功能真的很强大。
+                    </div>
+                </div>
+            </section>
+
+            <section id="experiment4" class="section">
+                <h2>💾 实验四：文件系统大冒险</h2>
+                
+                <div class="experiment-card">
+                    <div class="experiment-title">FAT文件系统操作 <span class="success-badge">最终Boss：⭐⭐⭐⭐</span></div>
+                    
+                    <div class="student-voice">
+                        最后一个实验了！这次要在UEFI环境下直接操作文件系统，说实话，刚开始我以为这是最简单的，因为文件操作嘛，C语言里fopen、fwrite不是很常见吗？结果发现，UEFI的文件操作完全是另一套体系。
+                    </div>
+                    
+                    <h3>UEFI文件系统架构</h3>
+                    <p>在UEFI环境下，文件操作不是调用操作系统API，而是通过一套专门的协议来实现：</p>
+                    
+                    <div class="highlight-box">
+                        <h4>三层协议架构</h4>
+                        <ul>
+                            <li><strong>底层：</strong>块输入输出协议 + 磁盘输入输出协议（访问存储设备）</li>
+                            <li><strong>中层：</strong>简单文件系统协议（将块设备抽象为文件系统）</li>
+                            <li><strong>上层：</strong>文件协议（提供标准的文件操作接口）</li>
+                        </ul>
+                    </div>
+
+                    <div class="image-container">
+                        <img src="fig/图4-1.png" alt="UEFI文件系统访问架构概念图">
+                        <p style="margin-top: 10px; color: #4299e1;">图4-1：UEFI文件系统访问架构概念图</p>
+                    </div>
+
+                    <h3>编程实现过程</h3>
+                    
+                    <div class="process-step">
+                        <h4>第一步：获取文件系统协议</h4>
+                        <p>通过LocateProtocol找到简单文件系统协议，这是文件操作的入口。</p>
+                        <div class="code-block">
+                            <pre>EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *SimpleFs;
+
+Status = gBS->LocateProtocol(
+    &gEfiSimpleFileSystemProtocolGuid,
+    NULL,
+    (VOID**)&SimpleFs
+);
+
+if (EFI_ERROR(Status)) {
+    Print(L"找不到文件系统协议: %r\n", Status);
+    return Status;
+}</pre>
+                        </div>
+                    </div>
+                    
+                    <div class="process-step">
+                        <h4>第二步：打开根目录</h4>
+                        <p>简单文件系统协议只有一个函数OpenVolume，用来获取根目录的文件句柄。</p>
+                        <div class="code-block">
+                            <pre>EFI_FILE_PROTOCOL *Root = NULL;
+
+Status = SimpleFs->OpenVolume(SimpleFs, &Root);
+if (EFI_ERROR(Status)) {
+    Print(L"无法打开文件系统卷: %r\n", Status);
+    return Status;
+}</pre>
+                        </div>
+                    </div>
+                    
+                    <div class="process-step">
+                        <h4>第三步：创建和打开文件</h4>
+                        <p>通过根目录的Open方法创建新文件，这里需要指定打开模式和文件属性。</p>
+                        <div class="code-block">
+                            <pre>EFI_FILE_PROTOCOL *FileIo = NULL;
+
+Status = Root->Open(
+    Root,                    // 父目录（根目录）
+    &FileIo,                // 新文件的句柄
+    (CHAR16*)L"readme.txt", // 文件名（Unicode字符串）
+    EFI_FILE_MODE_CREATE | EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE, // 创建+读写
+    0                       // 普通文件属性
+);
+
+if (EFI_ERROR(Status)) {
+    Print(L"创建文件失败: %r\n", Status);
+    Root->Close(Root);
+    return Status;
+}</pre>
+                        </div>
+                    </div>
+                    
+                    <div class="process-step">
+                        <h4>第四步：写入数据</h4>
+                        <p>使用文件句柄的Write方法向文件写入数据。</p>
+                        <div class="code-block">
+                            <pre>EFI_STATUS WriteFile(EFI_FILE_PROTOCOL* File) {
+    UINTN BufSize;
+    CHAR16 *Buf = (CHAR16*)L"This is test file\n";
+    
+    // 计算字符串长度（Unicode字符，每个字符2字节）
+    BufSize = StrLen(Buf) * 2;
+    
+    // 写入文件
+    Status = File->Write(File, &BufSize, Buf);
+    
+    if (EFI_ERROR(Status)) {
+        Print(L"写入文件失败: %r\n", Status);
+    }
+    
+    return Status;
+}</pre>
+                        </div>
+                    </div>
+
+                    <div class="student-voice">
+                        最开始我按照C语言的思路，想着直接fopen、fwrite，结果当然是编译不过。后来仔细看了UEFI的文件系统协议文档，才理解这套接口的设计思路。虽然比标准C库复杂一些，但是更加底层，控制性更强。
+                    </div>
+
+                    <h3>完整的文件操作流程</h3>
+                    <div class="code-block">
+                        <pre>EFI_STATUS EFIAPI file(
+    IN EFI_HANDLE ImageHandle,
+    IN EFI_SYSTEM_TABLE *SystemTable
+) {
+    EFI_STATUS Status = EFI_SUCCESS;
+    EFI_SIMPLE_FILE_SYSTEM_PROTOCOL *SimpleFs;
+    EFI_FILE_PROTOCOL *Root = NULL;
+    EFI_FILE_PROTOCOL *FileIo = NULL;
+    
+    Print(L"开始文件操作测试...\n");
+    
+    // 1. 获取文件系统协议
+    Status = gBS->LocateProtocol(
+        &gEfiSimpleFileSystemProtocolGuid,
+        NULL,
+        (VOID**)&SimpleFs
+    );
+    Print(L"LocateProtocol\n");
+    
+    if (EFI_ERROR(Status)) {
+        Print(L"获取文件系统协议失败: %r\n", Status);
+        return Status;
+    }
+    
+    // 2. 打开根目录
+    Status = SimpleFs->OpenVolume(SimpleFs, &Root);
+    Print(L"OpenVolume\n");
+    
+    if (EFI_ERROR(Status)) {
+        Print(L"打开卷失败: %r\n", Status);
+        return Status;
+    }
+    
+    // 3. 创建文件
+    Status = Root->Open(
+        Root,
+        &FileIo,
+        (CHAR16*)L"readme.txt",
+        EFI_FILE_MODE_CREATE | EFI_FILE_MODE_READ | EFI_FILE_MODE_WRITE,
+        0
+    );
+    
+    if (EFI_ERROR(Status)) {
+        Print(L"创建文件失败: %r\n", Status);
+        Root->Close(Root);
+        return Status;
+    }
+    
+    // 4. 写入数据
+    Print(L"WriteFile\n");
+    Status = WriteFile(FileIo);
+    
+    if (EFI_ERROR(Status)) {
+        Print(L"写入文件失败: %r\n", Status);
+    } else {
+        Print(L"Success\n");
+    }
+    
+    // 5. 清理资源
+    FileIo->Close(FileIo);
+    Root->Close(Root);
+    
+    return Status;
+}</pre>
+                    </div>
+
+                    <h3>测试和验证</h3>
+                    <div class="process-step">
+                        <h4>编译程序</h4>
+                        <p>按照前面实验的方法，创建INF文件，修改DSC配置，然后编译。注意在INF的[Protocols]节中要添加文件系统协议的GUID。</p>
+                    </div>
+                    
+                    <div class="process-step">
+                        <h4>运行测试</h4>
+                        <p>在UEFI Shell中执行file.efi，看到程序依次输出各个阶段的信息。</p>
+                    </div>
+                    
+                    <div class="process-step">
+                        <h4>验证结果</h4>
+                        <p>使用Shell命令验证文件是否创建成功：</p>
+                        <div class="code-block">
+                            <pre>Shell> ls
+Directory of: fs0:\
+...
+readme.txt
+
+Shell> type readme.txt
+This is test file</pre>
+                        </div>
+                    </div>
+
+                    <div class="image-container">
+                        <img src="fig/图4-5.png" alt="文件操作程序成功运行并显示各阶段的执行状态">
+                        <p style="margin-top: 10px; color: #4299e1;">图4-5：文件操作程序成功运行并显示各阶段的执行状态</p>
+                    </div>
+
+                    <div class="image-container">
+                        <img src="fig/图4-6.png" alt="使用Shell命令验证文件创建成功并查看文件内容">
+                        <p style="margin-top: 10px; color: #4299e1;">图4-6：使用Shell命令验证文件创建成功并查看文件内容</p>
+                    </div>
+
+                    <div class="personal-note">
+                        当我在UEFI Shell中用type命令看到文件内容时，心情无比激动！从程序创建文件，到成功写入数据，再到用命令行验证，整个过程让我感觉真的掌握了底层的文件系统操作。这种成就感比做任何高级语言的项目都要强烈。
+                    </div>
+
+                    <div class="student-voice">
+                        这个实验让我对操作系统的文件系统有了更深的理解。以前觉得文件操作就是调用API那么简单，现在才知道底层有这么多复杂的协议和机制。UEFI的设计真的很精妙，通过分层的协议架构，既保证了灵活性，又提供了统一的接口。
+                    </div>
+                </div>
+            </section>
+
+            <section id="conclusion" class="section">
+                <h2>🎯 我的总结和感想</h2>
+                
+                <div class="student-voice">
+                    回想这一学期的课设经历，从刚开始的一头雾水到现在基本掌握UEFI开发，真的是一段很奇妙的旅程。这四个实验不只是教会了我技术，更重要的是让我对计算机系统有了全新的认识。
+                </div>
+
+                <h3>技术收获</h3>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-number">✅</div>
+                        <div class="stat-label">SMBIOS协议应用</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">✅</div>
+                        <div class="stat-label">UEFI驱动开发</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">✅</div>
+                        <div class="stat-label">HII界面编程</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">✅</div>
+                        <div class="stat-label">文件系统操作</div>
+                    </div>
+                </div>
+
+                <div class="highlight-box">
+                    <h4>🔥 最大的收获</h4>
+                    <ul>
+                        <li><strong>系统思维：</strong>学会从系统层面思考问题，理解硬件、固件、操作系统之间的关系</li>
+                        <li><strong>底层理解：</strong>对计算机启动过程、硬件抽象有了深入认识</li>
+                        <li><strong>协议思想：</strong>理解了UEFI通过协议实现模块化设计的思想</li>
+                        <li><strong>开发技能：</strong>掌握了edk2开发环境和UEFI编程技巧</li>
+                        <li><strong>问题解决：</strong>通过大量的调试和排错，提高了分析问题的能力</li>
+                    </ul>
+                </div>
+
+                <h3>遇到的困难和解决过程</h3>
+                
+                <div class="process-step">
+                    <h4>环境配置问题</h4>
+                    <p>刚开始搭建edk2环境时各种报错，依赖包缺失、网络超时等问题层出不穷。解决方法是仔细阅读文档，多尝试不同的源和代理设置。</p>
+                </div>
+                
+                <div class="process-step">
+                    <h4>编译错误</h4>
+                    <p>INF文件配置不当、库依赖错误等编译问题很常见。学会了仔细分析错误信息，对比示例代码找出差异。</p>
+                </div>
+                
+                <div class="process-step">
+                    <h4>概念理解困难</h4>
+                    <p>协议、句柄、GUID等UEFI特有概念一开始很难理解。通过多写代码、多调试，慢慢形成了直觉。</p>
+                </div>
+                
+                <div class="process-step">
+                    <h4>调试困难</h4>
+                    <p>UEFI环境下调试不如普通程序方便，主要靠Print输出和返回值判断。学会了通过输出关键信息来定位问题。</p>
+                </div>
+
+                <div class="student-voice">
+                    这个课设真的让我体验到了什么叫"痛并快乐着"。每次遇到问题的时候都很头疼，但是解决问题后的成就感也是巨大的。特别是看到自己写的程序在UEFI环境中运行时，那种感觉真的无法言喻。
+                </div>
+
+                <h3>对专业发展的影响</h3>
+                <div class="experiment-card">
+                    <p>通过这次课设，我对计算机系统的底层有了更深的理解，这对我今后的专业发展很有帮助：</p>
+                    
+                    <ul>
+                        <li><strong>系统软件开发：</strong>掌握了底层编程技能，为从事操作系统、驱动程序开发奠定基础</li>
+                        <li><strong>嵌入式开发：</strong>理解了固件的工作原理，对IoT、嵌入式系统开发很有帮助</li>
+                        <li><strong>信息安全：</strong>了解了系统启动过程，对安全研究和漏洞分析有重要意义</li>
+                        <li><strong>硬件相关工作：</strong>掌握了硬件抽象和设备驱动的概念，为硬件相关工作做准备</li>
+                    </ul>
+                    
+                    <div class="tech-stack">
+                        <span class="tech-tag">系统编程</span>
+                        <span class="tech-tag">嵌入式开发</span>
+                        <span class="tech-tag">信息安全</span>
+                        <span class="tech-tag">IoT开发</span>
+                        <span class="tech-tag">驱动开发</span>
+                    </div>
+                </div>
+
+                <h3>未来学习计划</h3>
+                <div class="highlight-box">
+                    <h4>📚 接下来想深入的方向</h4>
+                    <ul>
+                        <li><strong>更复杂的UEFI应用：</strong>尝试开发更实用的UEFI工具，比如硬件测试程序</li>
+                        <li><strong>安全启动：</strong>学习UEFI安全启动机制，了解系统安全的实现</li>
+                        <li><strong>操作系统内核：</strong>基于对固件的理解，学习操作系统内核开发</li>
+                        <li><strong>嵌入式系统：</strong>将UEFI知识应用到嵌入式系统开发中</li>
+                    </ul>
+                </div>
+
+                <div class="personal-note">
+                    感谢王冠老师的悉心指导，感谢同学们的互相帮助。这次课设让我真正体验到了"板级"编程的魅力，也让我对自己的专业方向有了更清晰的认识。虽然过程中遇到了很多困难，但正是这些困难让我成长了很多。
+
+                    最后想说，固件开发虽然门槛有点高，但真的很有意思。如果你也对计算机系统的底层感兴趣，建议一定要亲手试试UEFI开发，那种直接和硬件"对话"的感觉真的很棒！
+                </div>
+
+                <div class="student-voice">
+                    这四个实验就像是四关游戏，每一关都有不同的挑战，但通关后的成就感也是递增的。从简单的信息获取，到复杂的服务机制，从界面设计到文件操作，每一步都在加深对UEFI系统的理解。现在回头看，真的很感谢当初选择了这门课！
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="container">
+            <p>📝 我的固件原理课程设计实验记录</p>
+            <p>👨‍🎓 张禹喆 | 🏫 北京工业大学计算机学院 | 👨‍🏫 指导教师：王冠</p>
+            <p>⏰ 2025年6月 | 💻 用代码探索计算机的底层世界</p>
+        </div>
+    </footer>
+
+    <script>
+        // 滚动进度指示器
+        window.addEventListener('scroll', () => {
+            const scrolled = (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100;
+            document.querySelector('.scroll-indicator').style.transform = `scaleX(${scrolled / 100})`;
+        });
+
+        // 平滑滚动
+        document.querySelectorAll('nav a').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+
+        // 渐入动画
+        const observerOptions = {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
+        };
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        // 为元素添加动画
+        document.querySelectorAll('.section, .experiment-card, .process-step').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(30px)';
+            el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            observer.observe(el);
+        });
+
+        // 添加一些交互效果
+        document.querySelectorAll('.tech-tag').forEach(tag => {
+            tag.addEventListener('mouseover', function() {
+                this.style.transform = 'scale(1.05)';
+            });
+            tag.addEventListener('mouseout', function() {
+                this.style.transform = 'scale(1)';
+            });
+        });
+    </script>
+</body>
+</html>
